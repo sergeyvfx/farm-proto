@@ -81,7 +81,7 @@ class Job {
   bool store_tasks(Storage *storage);
 
   /* Serialize the job into JSON. */
-  json serialize_json();
+  json serialize_json(bool detail = false);
  protected:
   /* Unique ID of the job. */
   int id_;

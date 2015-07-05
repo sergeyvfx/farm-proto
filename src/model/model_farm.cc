@@ -126,6 +126,16 @@ void Farm::idle_handler() {
   storage_->flush_caches();
 }
 
+Job* Farm::job_by_id(int id) {
+  /* TODO(sergey): Use binary search. */
+  foreach(Job* job, jobs_) {
+    if(job->id() == id) {
+      return job;
+    }
+  }
+  return NULL;
+}
+
 /* Priority queue helpers. */
 
 Farm::QueueTask::QueueTask(Job *job, Task *task)

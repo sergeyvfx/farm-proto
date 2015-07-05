@@ -153,6 +153,66 @@ void serve_welcome_callback(SoupServer *server,
   serve_callback_end_log(msg);
 }
 
+void serve_jobs_list(SOUPHTTPServer *http_server,
+                     SoupMessage *msg) {
+  vector<Job*> jobs = http_server->farm()->jobs();
+  json jobs_serialized;
+  foreach(Job* job, jobs) {
+    jobs_serialized[job->id()] = job->serialize_json();
+  }
+  serve_set_response_json(msg, jobs_serialized);
+  soup_message_set_status(msg, SOUP_STATUS_OK);
+}
+
+void serve_job_details(SOUPHTTPServer *http_server,
+                       SoupMessage *msg,
+                       const char *path) {
+  int id = atoi(path + 6);
+  VLOG(1) << "Getting details of job " << id << ".";
+  Job *job = http_server->farm()->job_by_id(id);
+  if(job == NULL) {
+    soup_message_set_status(msg, SOUP_STATUS_NOT_FOUND);
+    return;
+  }
+  json job_serialized = job->serialize_json(true);
+  serve_set_response_json(msg, job_serialized);
+  soup_message_set_status(msg, SOUP_STATUS_OK);
+}
+
+void serve_job_command(SOUPHTTPServer *http_server,
+                       SoupMessage *msg) {
+  URIQuery query(msg->request_body->data);
+  /* TODO(sergey): Sanity check on ID. */
+  const int id = atoi(query["id"].c_str());
+  const string& command = query["command"];
+  bool ok = false;
+  if(command == "start") {
+    VLOG(1) << "Starting job ID " << id << ".";
+    /* TODO(sergey): Needs implementation. */
+    ok = true;
+  } else if(command == "stop") {
+    VLOG(1) << "Stopping job ID " << id << ".";
+    /* TODO(sergey): Needs implementation. */
+    ok = true;
+  } else if(command == "rese6") {
+    VLOG(1) << "Resetting job ID " << id << ".";
+    /* TODO(sergey): Needs implementation. */
+    ok = true;
+  } else if(command == "archive") {
+    VLOG(1) << "Archiving job ID " << id << ".";
+    /* TODO(sergey): Needs implementation. */
+    ok = true;
+  } else {
+    VLOG(1) << "Unknown command: " << command << ".";
+  }
+  if(ok) {
+    json response;
+    response["length"] = 0;
+    serve_set_response_json(msg, response);
+  }
+  soup_message_set_status(msg, ok ? SOUP_STATUS_OK : SOUP_STATUS_FORBIDDEN);
+}
+
 void serve_jobs_callback(SoupServer *server,
                          SoupMessage *msg,
                          const char *path,
@@ -160,41 +220,15 @@ void serve_jobs_callback(SoupServer *server,
                          SoupClientContext *context,
                          gpointer data) {
   serve_callback_begin_log(msg, path, __func__);
+  SOUPHTTPServer *http_server = (SOUPHTTPServer*)data;
   if(msg->method == SOUP_METHOD_GET) {
-    SOUPHTTPServer *http_server = (SOUPHTTPServer*)data;
-    vector<Job*> jobs = http_server->farm()->jobs();
-    json jobs_serialized;
-    foreach(Job* job, jobs) {
-      jobs_serialized[job->id()] = job->serialize_json();
-    }
-    serve_set_response_json(msg, jobs_serialized);
-    soup_message_set_status(msg, SOUP_STATUS_OK);
-  } else if(msg->method == SOUP_METHOD_PUT) {
-    URIQuery query(msg->request_body->data);
-    /* TODO(sergey): Sanity check on ID. */
-    const int id = atoi(query["id"].c_str());
-    const string& command = query["command"];
-    bool ok = false;
-    if(command == "start") {
-      VLOG(1) << "Starting job ID " << id << ".";
-      /* TODO(sergey): Needs implementation. */
-      ok = true;
-    } else if(command == "stop") {
-      VLOG(1) << "Stopping job ID " << id << ".";
-      /* TODO(sergey): Needs implementation. */
-      ok = true;
-    } else if(command == "rese6") {
-      VLOG(1) << "Resetting job ID " << id << ".";
-      /* TODO(sergey): Needs implementation. */
-      ok = true;
-    } else if(command == "archive") {
-      VLOG(1) << "Archiving job ID " << id << ".";
-      /* TODO(sergey): Needs implementation. */
-      ok = true;
+    if(strcmp(path, "/jobs") == 0) {
+      serve_jobs_list(http_server, msg);
     } else {
-      VLOG(1) << "Unknown command: " << command << ".";
+      serve_job_details(http_server, msg, path);
     }
-    soup_message_set_status(msg, ok ? SOUP_STATUS_OK : SOUP_STATUS_FORBIDDEN);
+  } else if(msg->method == SOUP_METHOD_PUT) {
+    serve_job_command(http_server, msg);
   } else {
     soup_message_set_status(msg, SOUP_STATUS_FORBIDDEN);
   }

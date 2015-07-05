@@ -84,11 +84,13 @@ bool Job::store_tasks(Storage *storage) {
 }
 
 /* Serialize the job into JSON. */
-json Job::serialize_json() {
+json Job::serialize_json(bool detail) {
+  /* TODO(sergey): Need to fill in a real information here. */
   json manager;
   manager["name"] = "Blender Institute";
   manager["logo"] = "http://i.imgur.com/tVQSqq3s.jpg";
   json job;
+  job["id"] = id_;
   job["time_remaining"] = 0;
   job["time_average"] = 0;
   job["time_total"] = 0;
@@ -102,6 +104,20 @@ json Job::serialize_json() {
   job["manager"] = manager;
   job["tasks_status"] = json();
   job["username"] = "Marty McFly";
+  if(detail) {
+    json settings;
+    settings["frame_start"] = 0;
+    settings["frame_end"] = 250;
+    settings["chunk_size"] = 0;
+
+    /* TODO(sergey): This guys are to be unified in flamenco.*/
+    job["total_time"] = 0;
+    job["average_time"] = 0;
+
+    job["average_time_frame"] = 0;
+    job["tasks"] = "";
+    job["settings"] = settings;
+  }
   return job;
 }
 
