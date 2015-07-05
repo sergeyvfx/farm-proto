@@ -18,50 +18,37 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#ifndef HTTP_SERVER_
-#define HTTP_SERVER_
+#ifndef UTIL_FUNCTION_H_
+#define UTIL_FUNCTION_H_
 
-#include "util/util_function.h"
-#include "util/util_string.h"
+#if (__cplusplus > 199711L) || (defined(_MSC_VER) && _MSC_VER >= 1800)
+#  include <functional>
+#else
+#  include <boost/bind.hpp>
+#  include <boost/function.hpp>
+#endif
 
 namespace Farm {
 
-class Farm;
-
-class HTTPServer {
- public:
-  /* Function which is being called when HTTP server is idling. */
-  function<void(void)> idle_function_cb;
-
-  HTTPServer(Farm *farm,
-             int port,
-             string document_root)
-    : farm_(farm),
-      port_(port),
-      document_root_(document_root) {
-  }
-  virtual ~HTTPServer() {}
-
-  /* Start serving loop. */
-  virtual void start_serve() = 0;
-
-  /* Stop serving HTTP. */
-  virtual void stop_serve() = 0;
-
-  /* Get path to the document root, */
-  const string& get_document_root() { return document_root_; }
-
-  Farm *get_farm() { return farm_; }
-
- protected:
-  /* Back-link to the farm, so http cal invoke methods from it. */
-  Farm *farm_;
-  /* Port number to listen on. */
-  int port_;
-  /* Path to the server document root. */
-  string document_root_;
-};
+#if (__cplusplus > 199711L) || (defined(_MSC_VER) && _MSC_VER >= 1800)
+#  define function_bind std::bind
+#  define function_null nullptr
+using std::function;
+using std::placeholders::_1;
+using std::placeholders::_2;
+using std::placeholders::_3;
+using std::placeholders::_4;
+using std::placeholders::_5;
+using std::placeholders::_6;
+using std::placeholders::_7;
+using std::placeholders::_8;
+using std::placeholders::_9;
+#else
+using boost::function;
+#  define function_bind boost::bind
+#  define function_null NULL
+#endif
 
 }  /* namespace Farm */
 
-#endif  /* HTTP_SERVER_SOUP_ */
+#endif /* UTIL_FUNCTION_H_ */

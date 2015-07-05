@@ -84,4 +84,9 @@ bool DryRunStorage::update_task(const Task& /*task*/) {
   return true;
 }
 
+/* Fliush caches to the actual storage. */
+bool DryRunStorage::flush_caches(bool force) {
+  return true;
+}
+
 } /* namespace Farm */

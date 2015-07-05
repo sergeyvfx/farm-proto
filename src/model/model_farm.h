@@ -52,6 +52,8 @@ class Farm {
   /* Dispatch new task to worker/manager. */
   Task* dispatch_task();
 
+  /* Does all the maintenance work while http server is idling. */
+  void idle_handler();
  protected:
   class QueueTask {
    public:

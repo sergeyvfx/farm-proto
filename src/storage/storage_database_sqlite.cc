@@ -25,24 +25,31 @@
 #include "sqlite/sqlite3.h"
 #include "util/util_foreach.h"
 #include "util/util_logging.h"
+#include "util/util_time.h"
 
 /* Cofigure sqlite to b as fast as possible, need reliable back-UPSed
  * computer to prevent database corruption in the event of major
  * failure.
  */
-#define MAXIMUM_PERFORMANCE
+// #define MAXIMUM_PERFORMANCE
 
 namespace Farm {
 
 SQLiteStorage::SQLiteStorage(string filename)
     : filename_(filename),
       database_(NULL),
+      has_open_transaction_(false),
       select_all_jobs_statement_(NULL),
       select_job_tasks_statement_(NULL),
       insert_job_statement_(NULL),
       insert_task_statement_(NULL),
       update_task_statement_(NULL) {
   VLOG(1) << "Using SQLite version " << sqlite3_libversion();
+  /* Those are tweakable performance parameters.
+   * By default we do maximum reliability.
+   */
+  use_bulked_transactions = false;
+  transaction_commit_interval = 2.0;
 }
 
 bool SQLiteStorage::create_schema() {
@@ -91,7 +98,7 @@ bool SQLiteStorage::connect() {
   /* This is almost failure-safe optimizations, probability of their failure
    * is quite the same as meteor hitting your render farm.
    */
-  sql_exec("PRAGMA synchronous=NORMAL");
+  // sql_exec("PRAGMA synchronous=NORMAL");
 #else
   /* This optimizations are not safe in thecase of application crash or
    * power outage, but still possible to use those for maximum performance.
@@ -105,6 +112,7 @@ bool SQLiteStorage::connect() {
 /* Disconnect from the storage. */
 bool SQLiteStorage::disconnect() {
   VLOG(1) << "Disconnecting from " << filename_ << ".";
+  transaction_commit_pending(true);
   sqlite3_finalize(select_all_jobs_statement_);
   sqlite3_finalize(select_job_tasks_statement_);
   sqlite3_finalize(insert_job_statement_);
@@ -153,6 +161,8 @@ bool SQLiteStorage::retrieve_all_tasks(const Job& job,
 /* Insert new job into the database. */
 bool SQLiteStorage::insert_job(Job *job) {
   VLOG(1) << "Inserting new job: " << job->name() << ".";
+  /* Force apply all the pending transactions. */
+  transaction_commit_pending(true);
   sqlite3_bind_int(insert_job_statement_, 1, job->priority());
   sqlite3_bind_int(insert_job_statement_, 2, job->status());
   sqlite3_bind_text(insert_job_statement_, 3,
@@ -193,26 +203,59 @@ bool SQLiteStorage::update_job(const Job& job) {
 
 /* Update task in the stroage. */
 bool SQLiteStorage::update_task(const Task& task) {
+  transaction_begin_pending();
   sqlite3_bind_int(update_task_statement_, 1, task.status());
   sqlite3_bind_int(update_task_statement_, 2, task.id());
   return sql_exec_prepared(update_task_statement_);
+  transaction_commit_pending();
+}
+
+/* Fliush caches to the actual storage. */
+bool SQLiteStorage::flush_caches(bool force) {
+  transaction_commit_pending(force);
+  return true;
 }
 
 /* Helper functions, wrappers around more low-level calls. */
 
 /* Begin new transaction. */
 void SQLiteStorage::transaction_begin() {
+  assert(has_open_transaction_ == false);
   sql_exec("BEGIN TRANSACTION");
+  has_open_transaction_ = true;
+  transaction_open_timestamp_ = util_time_dt();
 }
 
 /* Rollback current transaction. */
 void SQLiteStorage::transaction_rollback() {
+  assert(has_open_transaction_ == true);
   sql_exec("ROLLBACK TRANSACTION");
+  has_open_transaction_ = false;
 }
 
-  /* Commit current transaction. */
+/* Commit current transaction. */
 void SQLiteStorage::transaction_commit() {
+  assert(has_open_transaction_ == true);
   sql_exec("END TRANSACTION");
+  has_open_transaction_ = false;
+}
+
+void SQLiteStorage::transaction_begin_pending() {
+  if(use_bulked_transactions && !has_open_transaction_) {
+    VLOG(1) << "Starting new pending transaction.";
+    transaction_begin();
+  }
+}
+
+/* Commit possibly pending transaction. */
+void SQLiteStorage::transaction_commit_pending(bool force) {
+  if(use_bulked_transactions && has_open_transaction_) {
+    double time_dt = util_time_dt() - transaction_open_timestamp_;
+    if(force || time_dt  >= transaction_commit_interval) {
+      VLOG(1) << "Comitting pending transaction.";
+      transaction_commit();
+    }
+  }
 }
 
 sqlite3_stmt *SQLiteStorage::sql_prepare(string sql) {

@@ -121,6 +121,11 @@ Task* Farm::dispatch_task() {
   return task;
 }
 
+void Farm::idle_handler() {
+  thread_scoped_lock(lock);
+  storage_->flush_caches();
+}
+
 /* Priority queue helpers. */
 
 Farm::QueueTask::QueueTask(Job *job, Task *task)

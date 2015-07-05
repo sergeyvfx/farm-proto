@@ -56,6 +56,9 @@ class Storage {
 
   /* Update task in the stroage. */
   virtual bool update_task(const Task& task) = 0;
+
+  /* Fliush caches to the actual storage. */
+  virtual bool flush_caches(bool force = false) = 0;
 };
 
 } /* namespace Farm */

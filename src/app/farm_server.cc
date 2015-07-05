@@ -25,6 +25,7 @@
 #include "model/model_farm.h"
 #include "storage/storage_dryrun.h"
 #include "storage/storage_database_sqlite.h"
+#include "util/util_function.h"
 #include "util/util_string.h"
 #include "util/util_logging.h"
 #include "util/util_time.h"
@@ -45,13 +46,6 @@ Storage *storage = NULL;
 void signal_quit(int sig) {
   VLOG(1) << "Performing shutdown sequence...";
   http_server->stop_serve();
-  farm->store();
-  storage->disconnect();
-  delete http_server;
-  delete storage;
-  delete farm;
-  VLOG(1) << "Shutdown sequence completed.";
-  exit(0);
 }
 
 }  /* namespace */
@@ -65,14 +59,18 @@ int main(int argc, char **argv) {
   util_logging_verbosity_set(1);
 
 #ifndef DRY_RUN_STORAGE
-    // SQLiteStorage *sqlite_storage = new SQLiteStorage(":memory:");
-    SQLiteStorage *sqlite_storage = new SQLiteStorage("/tmp/farm.sqlite");
-    sqlite_storage->connect();
-    sqlite_storage->create_schema();
-    storage = sqlite_storage;
+  // SQLiteStorage *sqlite_storage = new SQLiteStorage(":memory:");
+  SQLiteStorage *sqlite_storage = new SQLiteStorage("/tmp/farm.sqlite");
+  sqlite_storage->connect();
+  sqlite_storage->create_schema();
+
+  sqlite_storage->use_bulked_transactions = true;
+  sqlite_storage->transaction_commit_interval = 2.0;
+
+  storage = sqlite_storage;
 #else
-    storage = new DryRunStorage(true);
-    storage->connect();
+  storage = new DryRunStorage(true);
+  storage->connect();
 #endif
 
   double start_time = util_time_dt();
@@ -90,7 +88,16 @@ int main(int argc, char **argv) {
   http_server = new  SOUPHTTPServer(farm,
                                     8080,
                                     "/home/sergey/src/farm-proto/web");
+  http_server->idle_function_cb = function_bind(&Farm::idle_handler, farm);
   http_server->start_serve();
+
+  farm->store();
+  storage->disconnect();
+  delete http_server;
+  delete storage;
+  delete farm;
+  VLOG(1) << "Shutdown sequence completed.";
+
   return EXIT_SUCCESS;
 }
 

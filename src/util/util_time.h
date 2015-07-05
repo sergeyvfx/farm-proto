@@ -24,6 +24,7 @@
 namespace Farm {
 
 double util_time_dt();
+void util_time_sleep(double t);
 
 }  /* namespace Farm */
 

@@ -24,6 +24,7 @@
 #include "http/http_server.h"
 
 struct _SoupServer;
+struct _GMainLoop;
 
 namespace Farm {
 
@@ -45,6 +46,7 @@ class SOUPHTTPServer : public HTTPServer {
 
  protected:
   _SoupServer *server_;
+  _GMainLoop *main_loop_;
 };
 
 }  /* namespace Farm */

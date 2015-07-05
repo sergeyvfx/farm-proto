@@ -50,6 +50,9 @@ class DryRunStorage : public Storage {
 
   /* Update task in the stroage. */
   bool update_task(const Task& task);
+
+  /* Fliush caches to the actual storage. */
+  bool flush_caches(bool force = false);
  public:
   /* Populate the storage with test jobs/tasls. */
   bool populate_;

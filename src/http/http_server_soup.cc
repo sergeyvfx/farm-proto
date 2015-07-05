@@ -31,6 +31,7 @@
 #include "util/util_logging.h"
 #include "util/util_path.h"
 #include "util/util_string.h"
+#include "util/util_time.h"
 
 namespace Farm {
 
@@ -171,12 +172,25 @@ void serve_get_task_callback(SoupServer *server,
   serve_callback_end_log(msg);
 }
 
+gboolean idle_function(gpointer user_data) {
+  SOUPHTTPServer *http_server = (SOUPHTTPServer*)user_data;
+  if(http_server->idle_function_cb) {
+    http_server->idle_function_cb();
+  }
+  /* TODO(sergey): Might need to tweak this delay.
+   * or maybe use timer callback instead.
+   */
+  util_time_sleep(0.01);
+  return true;
+}
+
 }  /* namespace */
 
 SOUPHTTPServer::SOUPHTTPServer(Farm *farm,
                                int port,
                                string document_root)
-    : HTTPServer(farm, port, document_root) {
+    : HTTPServer(farm, port, document_root),
+      main_loop_(NULL) {
   VLOG(1) << "Create new SOUP HTTP server ar port " << port << ".";
   server_ = soup_server_new(SOUP_SERVER_SERVER_HEADER, "farm-httpd", NULL);
 }
@@ -214,12 +228,16 @@ void SOUPHTTPServer::start_serve() {
   /* TODO(sergey): It'll work for until more areas will want
    * to use glib's main loop.
    */
-  GMainLoop *loop = g_main_loop_new(NULL, TRUE);
-  g_main_loop_run(loop);
+  main_loop_ = g_main_loop_new(NULL, FALSE);
+
+  g_idle_add(idle_function, this);
+
+  g_main_loop_run(main_loop_);
 }
 
 void SOUPHTTPServer::stop_serve() {
   VLOG(1) << "Stop listening to HTTP connections.";
+  g_main_loop_quit(main_loop_);
   soup_server_disconnect(server_);
 }
 

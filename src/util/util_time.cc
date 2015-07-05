@@ -22,6 +22,7 @@
 #define UTIL_TIME_H_
 
 #include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 
 namespace Farm {
@@ -30,6 +31,13 @@ double util_time_dt() {
   struct timeval now;
   gettimeofday(&now, NULL);
   return now.tv_sec + now.tv_usec*1e-6;
+}
+
+void util_time_sleep(double t) {
+  struct timespec tim;
+  tim.tv_sec = (int)t;
+  tim.tv_nsec = (t - tim.tv_sec) * 1e+9;
+  nanosleep(&tim , NULL);
 }
 
 }  /* namespace Farm */

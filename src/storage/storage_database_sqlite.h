@@ -59,6 +59,21 @@ class SQLiteStorage : public DatabaseStorage {
   /* Update task in the stroage. */
   bool update_task(const Task& task);
 
+  /* Fliush caches to the actual storage. */
+  bool flush_caches(bool force = false);
+
+  /* ** Performance parameters ** */
+
+  /* Combine update database requests together when they're happening
+   * too often in order to increase throughput.
+   */
+  bool use_bulked_transactions;
+
+  /* This parameter denotes how often transactions are being applied on the
+   * actual database when using bulked transactions.
+   */
+  double transaction_commit_interval;
+
  protected:
   /* Begin new transaction. */
   void transaction_begin();
@@ -68,6 +83,12 @@ class SQLiteStorage : public DatabaseStorage {
 
   /* Commit current transaction. */
   void transaction_commit();
+
+  /* Begin new transaction, does nothing if transaction is aleady started. */
+  void transaction_begin_pending();
+
+  /* Commit possibly pending transaction. */
+  void transaction_commit_pending(bool force = false);
 
   /* Prepare statement. */
   sqlite3_stmt *sql_prepare(string sql);
@@ -91,6 +112,12 @@ class SQLiteStorage : public DatabaseStorage {
   string filename_;
   /* Database descriptor. */
   sqlite3 *database_;
+
+  /* Denotesi if there're any open transactions. */
+  bool has_open_transaction_;
+
+  /* Timestamp of currently opened transaction. */
+  bool transaction_open_timestamp_;
 
   /* Prepared statements.
    *
