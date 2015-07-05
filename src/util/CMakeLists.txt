@@ -11,6 +11,7 @@ set(SRC
 	util_path.cc
 	util_string.cc
 	util_time.cc
+	util_uri.cc
 )
 
 set(SRC_HEADERS
@@ -24,6 +25,7 @@ set(SRC_HEADERS
 	util_string.h
 	util_thread.h
 	util_time.h
+	util_uri.h
 	util_vector.h
 )
 

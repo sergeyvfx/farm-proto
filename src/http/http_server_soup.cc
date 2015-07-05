@@ -34,6 +34,7 @@
 #include "util/util_path.h"
 #include "util/util_string.h"
 #include "util/util_time.h"
+#include "util/util_uri.h"
 
 namespace Farm {
 
@@ -168,9 +169,47 @@ void serve_jobs_callback(SoupServer *server,
     }
     serve_set_response_json(msg, jobs_serialized);
     soup_message_set_status(msg, SOUP_STATUS_OK);
+  } else if(msg->method == SOUP_METHOD_PUT) {
+    URIQuery query(msg->request_body->data);
+    /* TODO(sergey): Sanity check on ID. */
+    const int id = atoi(query["id"].c_str());
+    const string& command = query["command"];
+    bool ok = false;
+    if(command == "start") {
+      VLOG(1) << "Starting job ID " << id << ".";
+      /* TODO(sergey): Needs implementation. */
+      ok = true;
+    } else if(command == "stop") {
+      VLOG(1) << "Stopping job ID " << id << ".";
+      /* TODO(sergey): Needs implementation. */
+      ok = true;
+    } else if(command == "rese6") {
+      VLOG(1) << "Resetting job ID " << id << ".";
+      /* TODO(sergey): Needs implementation. */
+      ok = true;
+    } else if(command == "archive") {
+      VLOG(1) << "Archiving job ID " << id << ".";
+      /* TODO(sergey): Needs implementation. */
+      ok = true;
+    } else {
+      VLOG(1) << "Unknown command: " << command << ".";
+    }
+    soup_message_set_status(msg, ok ? SOUP_STATUS_OK : SOUP_STATUS_FORBIDDEN);
   } else {
     soup_message_set_status(msg, SOUP_STATUS_FORBIDDEN);
   }
+  serve_callback_end_log(msg);
+}
+
+void serve_jobs_delete_callback(SoupServer *server,
+                                SoupMessage *msg,
+                                const char *path,
+                                GHashTable *query,
+                                SoupClientContext *context,
+                                gpointer data) {
+  serve_callback_begin_log(msg, path, __func__);
+  /* TODO(sergey): Needs implementation. */
+  soup_message_set_status(msg, SOUP_STATUS_FORBIDDEN);
   serve_callback_end_log(msg);
 }
 
@@ -245,6 +284,7 @@ void SOUPHTTPServer::start_serve() {
   DECLARE_ROUTE("/static", serve_static_callback);
   DECLARE_ROUTE("/jobs", serve_jobs_callback);
   DECLARE_ROUTE("/jobs/thumbnails", serve_static_callback);
+  DECLARE_ROUTE("/jobs/delete", serve_jobs_delete_callback);
   DECLARE_ROUTE("/get_task", serve_get_task_callback);
 #undef DECLARE_ROUTE
 

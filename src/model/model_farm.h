@@ -57,7 +57,6 @@ class Farm {
 
   /* Getters */
   vector<Job*>& jobs() { return jobs_; }
-
  protected:
   class QueueTask {
    public:
