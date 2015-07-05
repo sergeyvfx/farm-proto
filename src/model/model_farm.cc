@@ -67,7 +67,7 @@ void Farm::rebuild_priority_queue() {
   foreach(Job *job, jobs_) {
     if(job->is_running()) {
       foreach(Task *task, job->tasks()) {
-        if(task->is_running()) {
+        if(task->status() == Task::STATUS_WAITING) {
           QueueTask queue_task(job, task);
           tasks_queue_.push(queue_task);
         }
