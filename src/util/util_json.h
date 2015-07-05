@@ -18,58 +18,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "util/util_string.h"
+#ifndef UTIL_JSON_H_
+#define UTIL_JSON_H_
 
-#include <cassert>
-#include <cstdarg>
-#include <cstdio>
-#include <vector>
-
-#ifdef _WIN32
-#  ifndef vsnprintf
-#    define vsnprintf _vsnprintf
-#  endif
-#endif
+#include "util/util_map.h"
+#include "util_string.h"
 
 namespace Farm {
 
-/* Based on code from Cycles. */
-string string_printf(const char *format, ...) {
-  std::vector<char> str(128, 0);
-  while(1) {
-    va_list args;
-    int result;
-    va_start(args, format);
-    result = vsnprintf(&str[0], str.size(), format, args);
-    va_end(args);
-    if(result == -1) {
-      /* Not enough space or formatting error. */
-      if(str.size() > 65536) {
-        assert(0);
-        return string("");
-      }
-      str.resize(str.size()*2, 0);
-      continue;
-    } else if(result >= (int)str.size()) {
-      /* Not enough space. */
-      str.resize(result + 1, 0);
-      continue;
-    }
-    return string(&str[0]);
-  }
-}
-
-string string_escape(string s) {
-  string result = "";
-  for(int i = 0; i < s.size(); ++i) {
-    char ch = s[i];
-    /* TOO(sergey): More characters here? */
-    if(ch == '"') {
-      result += '\\';
-    }
-    result += ch;
-  }
-  return result;
-}
+class json {
+ public:
+  typedef  unordered_map<string, string> storage_type;
+  json();
+  string& operator[] (string key);
+  string serialize();
+ protected:
+  storage_type storage_;
+};
 
 } /* namespace Farm */
+
+#endif  /* UTIL_JSON_H_ */

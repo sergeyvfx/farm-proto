@@ -29,6 +29,8 @@ using std::string;
 
 string string_printf(const char *format, ...);
 
+string string_escape(string s);
+
 } /* namespace Farm */
 
 #endif  /* UTIL_STRING_H_ */
