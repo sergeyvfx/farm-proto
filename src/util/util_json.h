@@ -26,13 +26,50 @@
 
 namespace Farm {
 
+class json;
+
+class json_value {
+ public:
+  enum Type {
+    UNKNOWN,
+    STRING,
+    INTEGER,
+    FLOAT,
+    JSON
+  };
+  json_value();
+  json_value(const json_value& other);
+  json_value(string value);
+  json_value(int value);
+  json_value(double value);
+  json_value(const json& value);
+  ~json_value();
+
+  void reset();
+  string serialize();
+
+  json_value& operator= (const json_value& other);
+  json_value& operator= (string value);
+  json_value& operator= (int value);
+  json_value& operator= (double value);
+  json_value& operator= (const json& value);
+ protected:
+  Type type_;
+  string value_string_;
+  int value_integer_;
+  double value_float_;
+  json *value_json_;
+};
+
 class json {
  public:
-  typedef  unordered_map<string, string> storage_type;
   json();
-  string& operator[] (string key);
+  json(const json& other);
+  json_value& operator[] (int key);
+  json_value& operator[] (string key);
   string serialize();
  protected:
+  typedef unordered_map<string, json_value> storage_type;
   storage_type storage_;
 };
 

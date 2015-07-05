@@ -1,4 +1,4 @@
-// Copyright (c) 2015 farm-proto authors.
+// Copyright (c) 2015 farm-proto author
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -28,6 +28,8 @@
 
 #include "model/model_farm.h"
 #include "model/model_task.h"
+#include "util/util_foreach.h"
+#include "util/util_json.h"
 #include "util/util_logging.h"
 #include "util/util_path.h"
 #include "util/util_string.h"
@@ -57,6 +59,16 @@ void serve_callback_begin_log(SoupMessage *msg,
 void serve_callback_end_log(SoupMessage *msg) {
   VLOG(1) << "Handled request, "
           << msg->status_code << " " << msg->reason_phrase << ".";
+}
+
+void serve_set_response_json(SoupMessage *msg,
+                             json& response) {
+  string serialized = response.serialize();
+  soup_message_set_response(msg,
+                            "text/plain",
+                            SOUP_MEMORY_COPY,
+                            serialized.c_str(),
+                            serialized.size());
 }
 
 void perform_file_serve(SoupServer *server,
@@ -129,14 +141,33 @@ void serve_welcome_callback(SoupServer *server,
     if(strcmp(path, "/") != 0) {
       soup_message_set_status(msg, SOUP_STATUS_NOT_FOUND);
     } else {
-      const char *stub = "Welcome to the farm.";
-      soup_message_set_response(msg,
-                                "text/html",
-                                SOUP_MEMORY_STATIC,
-                                stub,
-                                strlen(stub));
+      json message;
+      message["message"] = "Flamenco server up and running!";
+      serve_set_response_json(msg, message);
       soup_message_set_status(msg, SOUP_STATUS_OK);
     }
+  } else {
+    soup_message_set_status(msg, SOUP_STATUS_FORBIDDEN);
+  }
+  serve_callback_end_log(msg);
+}
+
+void serve_jobs_callback(SoupServer *server,
+                         SoupMessage *msg,
+                         const char *path,
+                         GHashTable *query,
+                         SoupClientContext *context,
+                         gpointer data) {
+  serve_callback_begin_log(msg, path, __func__);
+  if(msg->method == SOUP_METHOD_GET) {
+    SOUPHTTPServer *http_server = (SOUPHTTPServer*)data;
+    vector<Job*> jobs = http_server->farm()->jobs();
+    json jobs_serialized;
+    foreach(Job* job, jobs) {
+      jobs_serialized[job->id()] = job->serialize_json();
+    }
+    serve_set_response_json(msg, jobs_serialized);
+    soup_message_set_status(msg, SOUP_STATUS_OK);
   } else {
     soup_message_set_status(msg, SOUP_STATUS_FORBIDDEN);
   }
@@ -152,12 +183,12 @@ void serve_get_task_callback(SoupServer *server,
   serve_callback_begin_log(msg, path, __func__);
   if(msg->method == SOUP_METHOD_GET) {
     SOUPHTTPServer *http_server = (SOUPHTTPServer*)data;
-    Task *task = http_server->get_farm()->dispatch_task();
+    Task *task = http_server->farm()->dispatch_task();
     if(task != NULL) {
       VLOG(1) << "Found new task for dispatch: " << task->id() << ".";
       string task_id = string_printf("%d", task->id());
       soup_message_set_response(msg,
-                                "text/html",
+                                "text/plain",
                                 SOUP_MEMORY_COPY,
                                 task_id.c_str(),
                                 task_id.size());
@@ -196,6 +227,7 @@ SOUPHTTPServer::SOUPHTTPServer(Farm *farm,
 }
 
 SOUPHTTPServer::~SOUPHTTPServer() {
+  g_main_loop_unref(main_loop_);
   g_object_unref(server_);
 }
 
@@ -204,16 +236,17 @@ void SOUPHTTPServer::start_serve() {
   GError *error = NULL;
 
   /* TODO(sergey): Implement proper error handling. */
-  soup_server_listen_all(server_, 8080, listen_options, &error);
+  soup_server_listen_all(server_, port_, listen_options, &error);
 
   /* Define static routes. */
-  soup_server_add_handler(server_, "/", serve_welcome_callback, this, NULL);
-  soup_server_add_handler(server_, "/static", serve_static_callback, this, NULL);
-  soup_server_add_handler(server_,
-                          "/get_task",
-                          serve_get_task_callback,
-                          this,
-                          NULL);
+#define DECLARE_ROUTE(path, callback) \
+  soup_server_add_handler(server_, path, callback, this, NULL)
+  DECLARE_ROUTE("/", serve_welcome_callback);
+  DECLARE_ROUTE("/static", serve_static_callback);
+  DECLARE_ROUTE("/jobs", serve_jobs_callback);
+  DECLARE_ROUTE("/jobs/thumbnails", serve_static_callback);
+  DECLARE_ROUTE("/get_task", serve_get_task_callback);
+#undef DECLARE_ROUTE
 
   GSList *uris, *u;
   uris = soup_server_get_uris(server_);

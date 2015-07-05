@@ -51,7 +51,7 @@ class HTTPServer {
   /* Get path to the document root, */
   const string& get_document_root() { return document_root_; }
 
-  Farm *get_farm() { return farm_; }
+  Farm *farm() { return farm_; }
 
  protected:
   /* Back-link to the farm, so http cal invoke methods from it. */

@@ -83,4 +83,26 @@ bool Job::store_tasks(Storage *storage) {
   return true;
 }
 
+/* Serialize the job into JSON. */
+json Job::serialize_json() {
+  json manager;
+  manager["name"] = "Blender Institute";
+  manager["logo"] = "http://i.imgur.com/tVQSqq3s.jpg";
+  json job;
+  job["time_remaining"] = 0;
+  job["time_average"] = 0;
+  job["time_total"] = 0;
+  job["time_elapsed"] = 0;
+  job["job_name"] = name_;
+  job["percentage_done"] = name_;
+  job["status"] = "waiting";
+  job["creation_date"] = "Creation Time";
+  job["date_edit"] = "Edit Time";
+  job["priority"] = priority_;
+  job["manager"] = manager;
+  job["tasks_status"] = json();
+  job["username"] = "Marty McFly";
+  return job;
+}
+
 }  /* namespace Farm */

@@ -117,6 +117,7 @@ bool SQLiteStorage::disconnect() {
   sqlite3_finalize(select_job_tasks_statement_);
   sqlite3_finalize(insert_job_statement_);
   sqlite3_finalize(insert_task_statement_);
+  sqlite3_finalize(update_job_statement_);
   sqlite3_finalize(update_task_statement_);
   sqlite3_close(database_);
   return true;

@@ -34,6 +34,8 @@
 // #define DRY_RUN_STORAGE
 /* Create full bunch of new jobs, for development purposes only. */
 // #define CREATE_NEW_JOBS
+/* Count of new tasks to be created. */
+#define NEW_TASKS_COUNT 16
 
 namespace Farm {
 
@@ -77,7 +79,7 @@ int main(int argc, char **argv) {
   farm = new Farm(storage);
   farm->restore();
 #ifdef CREATE_NEW_JOBS
-  for(int i = 0; i < 512; ++i) {
+  for(int i = 0; i < NEW_TASKS_COUNT; ++i) {
     farm->insert_job(50,
                      Job::STATUS_WAITING,
                      string_printf("Test Job %d", i));
@@ -86,7 +88,7 @@ int main(int argc, char **argv) {
   VLOG(1) << "Restored in " << util_time_dt() - start_time << " seconds.";
 
   http_server = new  SOUPHTTPServer(farm,
-                                    8080,
+                                    9999,
                                     "/home/sergey/src/farm-proto/web");
   http_server->idle_function_cb = function_bind(&Farm::idle_handler, farm);
   http_server->start_serve();

@@ -23,10 +23,134 @@
 
 namespace Farm {
 
+json_value::json_value()
+  : type_(UNKNOWN),
+    value_string_(""),
+    value_integer_(0),
+    value_float_(0),
+    value_json_(NULL) {
+}
+
+json_value::json_value(const json_value& other) {
+  type_ = other.type_;
+  value_string_ = other.value_string_;
+  value_integer_ = other.value_integer_;
+  value_float_ = other.value_float_;
+  if(other.value_json_) {
+    value_json_ = new json(*other.value_json_);
+  }
+  else {
+    value_json_ = NULL;
+  }
+}
+
+json_value::json_value(string value)
+  : type_(STRING),
+    value_string_(value),
+    value_integer_(0),
+    value_float_(0),
+    value_json_(NULL) {
+}
+
+json_value::json_value(int value)
+  : type_(INTEGER),
+    value_string_(""),
+    value_integer_(value),
+    value_float_(0),
+    value_json_(NULL) {
+}
+
+json_value::json_value(double value)
+  : type_(FLOAT),
+    value_string_(""),
+    value_integer_(0),
+    value_float_(value),
+    value_json_(NULL) {
+}
+
+json_value::json_value(const json& value)
+  : type_(JSON),
+    value_string_(""),
+    value_integer_(0),
+    value_float_(0) {
+  value_json_ = new json(value);
+}
+
+json_value::~json_value() {
+  if(type_ == JSON) {
+    delete value_json_;
+  }
+}
+
+void json_value::reset() {
+  if(type_ == JSON) {
+    delete value_json_;
+  }
+  type_ = UNKNOWN;
+  value_string_.clear();
+  value_integer_ = 0;
+  value_float_ = 0.0;
+  value_json_ = NULL;
+}
+
+string json_value::serialize() {
+  switch(type_) {
+    case STRING:
+      return "\"" + value_string_ + "\"";
+    case INTEGER:
+      return string_printf("%d", value_integer_);
+    case FLOAT:
+      return string_printf("%f", value_float_);
+    case JSON:
+      return value_json_->serialize();
+    default:
+      return "";
+  }
+}
+
+json_value& json_value::operator= (string value) {
+  reset();
+  type_ = STRING;
+  value_string_ = value;
+  return *this;
+}
+
+json_value& json_value::operator= (int value) {
+  reset();
+  type_ = INTEGER;
+  value_integer_ = value;
+  return *this;
+}
+
+json_value& json_value::operator= (double value) {
+  reset();
+  type_ = FLOAT;
+  value_float_ = value;
+  return *this;
+}
+
+json_value& json_value::operator= (const json& value) {
+  reset();
+  type_ = JSON;
+  value_json_ = new json(value);
+  return *this;
+}
+
+/* JSON serialization/deserialization */
+
 json::json() {
 }
 
-string& json::operator[] (string key) {
+json::json(const json& other) {
+  storage_ = other.storage_;
+}
+
+json_value& json::operator[] (int key) {
+  string key_string = string_printf("%d", key);
+  return storage_[key_string];
+}
+
+json_value& json::operator[] (string key) {
   return storage_[key];
 }
 
@@ -37,7 +161,9 @@ string json::serialize() {
     if(!first_time) {
       result += ",";
     }
-    result += " " + pair.first + ": \"" + string_escape(pair.second) + "\"";
+    result += string_printf(" \"%s\": %s",
+                            pair.first.c_str(),
+                            pair.second.serialize().c_str());
     first_time = false;
   }
   result += "}";

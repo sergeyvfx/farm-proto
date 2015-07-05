@@ -54,6 +54,10 @@ class Farm {
 
   /* Does all the maintenance work while http server is idling. */
   void idle_handler();
+
+  /* Getters */
+  vector<Job*>& jobs() { return jobs_; }
+
  protected:
   class QueueTask {
    public:

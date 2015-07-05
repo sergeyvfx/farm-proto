@@ -21,6 +21,7 @@
 #ifndef MODEL_JOB_
 #define MODEL_JOB_
 
+#include "util/util_json.h"
 #include "util/util_string.h"
 #include "util/util_vector.h"
 
@@ -79,6 +80,8 @@ class Job {
   /* Store all tasks to the storage. */
   bool store_tasks(Storage *storage);
 
+  /* Serialize the job into JSON. */
+  json serialize_json();
  protected:
   /* Unique ID of the job. */
   int id_;
