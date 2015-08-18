@@ -59,7 +59,6 @@ bool Farm::store() {
   VLOG(1) << "Flushing farm data to the storage.";
   return true;
 }
-
 /* Rebuild priority queue of tasks. */
 void Farm::rebuild_priority_queue() {
   thread_scoped_lock(lock);

@@ -35,7 +35,7 @@
 /* Create full bunch of new jobs, for development purposes only. */
 // #define CREATE_NEW_JOBS
 /* Count of new tasks to be created. */
-#define NEW_TASKS_COUNT 16
+#define NEW_TASKS_COUNT 1024
 
 namespace Farm {
 

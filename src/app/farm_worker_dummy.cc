@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
       SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_SNIFFER,
       NULL);
 
-  SoupMessage *msg = soup_message_new("GET", "http://127.0.0.1:8080/get_task");
+  SoupMessage *msg = soup_message_new("GET", "http://127.0.0.1:9999/get_task");
 
   int num_tasks_handled = 0;
   double start_time;
